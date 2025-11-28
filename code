@@ -1,0 +1,33 @@
+-- impute_missing_values
+WITH missing AS (
+    SELECT 
+        product_id,
+        discount,
+        market,
+        region,
+        sales,
+        quantity
+    FROM orders
+    WHERE quantity IS NULL
+),
+unit_prices AS (
+    SELECT 
+        product_id,
+        discount,
+        CAST(SUM(sales) AS NUMERIC) / NULLIF(SUM(quantity), 0) AS unit_price
+    FROM orders
+    WHERE quantity IS NOT NULL
+    GROUP BY product_id, discount
+)
+SELECT 
+    m.product_id,
+    m.discount,
+    m.market,
+    m.region,
+    m.sales,
+    m.quantity,
+    ROUND(m.sales / up.unit_price) AS calculated_quantity
+FROM missing m
+JOIN unit_prices up
+  ON m.product_id = up.product_id
+ AND m.discount = up.discount;
